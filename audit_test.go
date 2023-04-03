@@ -51,7 +51,7 @@ func prepareAuditDB(
 
 func TestAudit(t *testing.T) {
 	config := []byte(`{
-		"database_name": "entxdemo",
+		"database_name": "sqlkitdemo",
 		"alarm_threshold": 0,
 		"banned_threshold": 2,
 		"seen_sql_log_level": 0
@@ -70,7 +70,7 @@ func TestAudit(t *testing.T) {
 		adb.Close()
 	}()
 
-	assert.Equalf(t, "entxdemo", audit.DatabaseName, "DatabaseName")
+	assert.Equalf(t, "sqlkitdemo", audit.DatabaseName, "DatabaseName")
 	assert.Equalf(t, int64(0), *audit.AlarmThreshold, "AlarmThreshold")
 	assert.Equalf(t, int64(2), audit.BannedThreshold, "BannedThreshold")
 	assert.Equalf(t, int32(0), audit.SeenSqlLogLevel.Load(), "SeenSqlLogLevel")
@@ -102,7 +102,7 @@ func TestAudit(t *testing.T) {
 	_, err = adb.QueryContext(ctx, "select * from data;")
 	assert.Truef(t, errors.Is(err, sqlkit.ErrBanned), "should banned error")
 	assert.Truef(t, errors.Is(sqlkit.ErrBanned, errors.InvalidArgument), "should parameters error")
-	_, err = adb.QueryContext(ctx, "select * from data where app_name=?;", "auto-edd-")
+	_, err = adb.QueryContext(ctx, "select * from data where app_name=?;", "xxx-")
 	assert.Nilf(t, err, "should not banned")
 	_, err = adb.QueryContext(ctx, "select * from tests;")
 	assert.Nilf(t, err, "should not banned")
@@ -118,7 +118,7 @@ func TestAudit(t *testing.T) {
 		"select * from data where app_name=?;": {
 			"query": "select * from data where app_name=?;",
 			"args": [
-				"auto-edd-"
+				"xxx-"
 			],
 			"explain": [
 				{
@@ -194,7 +194,7 @@ func TestSql(t *testing.T) {
 	s := sqlkit.Sql{
 		Query: "select * from data where app_name=?;",
 		Args: []interface{}{
-			"auto-edd-xxx",
+			"xxx-demo",
 		},
 		Explain: []skmysql.ExplainRow{
 			skmysql.ExplainRow{
@@ -215,7 +215,7 @@ func TestSql(t *testing.T) {
 				PossibleKeys: ptr("PRIMARY"),
 				Key:          ptr("PRIMARY"),
 				KeyLen:       ptr(8),
-				Ref:          ptr("entxdemo.t.data_id"),
+				Ref:          ptr("sqlkitdemo.t.data_id"),
 				Rows:         ptr(1),
 				Filtered:     ptr[float32](100),
 				Extra:        nil,
@@ -236,7 +236,7 @@ func TestSql(t *testing.T) {
 	assert.JSONEq(t, `{
 		"query": "select * from data where app_name=?;",
 		"args": [
-			"auto-edd-xxx"
+			"xxx-demo"
 		],
 		"explain": [
 			{
@@ -262,7 +262,7 @@ func TestSql(t *testing.T) {
 				"possible_keys": "PRIMARY",
 				"key": "PRIMARY",
 				"key_len": 8,
-				"ref": "entxdemo.t.data_id",
+				"ref": "sqlkitdemo.t.data_id",
 				"rows": 1,
 				"filtered": 100,
 				"extra": null
@@ -276,7 +276,7 @@ func TestSql(t *testing.T) {
 	err = json.Unmarshal(data, &s2)
 	assert.Nilf(t, err, "unmarshal sql")
 	assert.Equalf(t, "select * from data where app_name=?;", s2.Query, "query")
-	assert.Equalf(t, "auto-edd-xxx", s2.Args[0], "args")
+	assert.Equalf(t, "xxx-demo", s2.Args[0], "args")
 	assert.Equalf(t, sqlkit.Alarm, s2.AlarmType, "alarm type")
 	assert.Equalf(t, createdAt, s2.CreatedAt, "created_at")
 
@@ -301,7 +301,7 @@ func TestSql(t *testing.T) {
 	assert.Equalf(t, "PRIMARY", *s2.Explain[1].PossibleKeys, "explain[1].PossibleKeys")
 	assert.Equalf(t, "PRIMARY", *s2.Explain[1].Key, "explain[1].Key")
 	assert.Equalf(t, 8, *s2.Explain[1].KeyLen, "explain[1].KeyLen")
-	assert.Equalf(t, "entxdemo.t.data_id", *s2.Explain[1].Ref, "explain[1].Ref")
+	assert.Equalf(t, "sqlkitdemo.t.data_id", *s2.Explain[1].Ref, "explain[1].Ref")
 	assert.Equalf(t, 1, *s2.Explain[1].Rows, "explain[1].Rows")
 	assert.Equalf(t, float32(100), *s2.Explain[1].Filtered, "explain[1].Filtered")
 	assert.Nilf(t, s2.Explain[1].Extra, "explain[1].Extra")
@@ -313,7 +313,7 @@ func ptr[T any](s T) *T {
 
 func TestAPI(t *testing.T) {
 	config := []byte(`{
-		"database_name": "entxdemo",
+		"database_name": "sqlkitdemo",
 		"alarm_threshold": 0,
 		"banned_threshold": 2
 	}`)
@@ -360,7 +360,7 @@ func TestAPI(t *testing.T) {
 	testAPI(t, "GET", ts.URL+"/tables?_renderx=rest", nil, 200, ptr(`{
 		"data": {
 			"app": "",
-			"database": "entxdemo",
+			"database": "sqlkitdemo",
 			"tables": {
 				"data": {
 					"name": "data",
@@ -386,7 +386,7 @@ func TestAPI(t *testing.T) {
 			"alarm_threshold": 0,
 			"app": "",
 			"banned_threshold": 2,
-			"database": "entxdemo",
+			"database": "sqlkitdemo",
 			"explain_extra_alarm_substrs": {
 				"Block Nested Loop": {},
 				"filesort": {},
@@ -406,10 +406,10 @@ func TestAPI(t *testing.T) {
 	testAPI(t, "GET", ts.URL+"/sqls?_renderx=rest", nil, 200, ptr(`{
 		"data": {
 			"app": "",
-			"database": "entxdemo",
+			"database": "sqlkitdemo",
 			"sqls": {
-				"select id, app_name, name, version from data where app_name='auto-edd-dmap';": {
-					"query": "select id, app_name, name, version from data where app_name='auto-edd-dmap';",
+				"select id, app_name, name, version from data where app_name='xxx-demo';": {
+					"query": "select id, app_name, name, version from data where app_name='xxx-demo';",
 					"args": [],
 					"explain": [
 						{
@@ -560,7 +560,7 @@ func BenchmarkAudit(b *testing.B) {
 	testMockDB(b, mockDB, false)
 	// configure other options, like `"seen_sql_log_level": 0`
 	config := []byte(`{
-		"database_name": "entxdemo",
+		"database_name": "sqlkitdemo",
 		"alarm_threshold": 0,
 		"banned_threshold": 2
 	}`)
@@ -603,7 +603,7 @@ func testMockDB(b assert.TestingT, db *sql.DB, isAudit bool) {
 	ctx := context.Background()
 
 	// FIXME: why got ErrSkip for mock?
-	// m, err := sqlkit.NewMySQL(db).GetTables(ctx, "entxdemo")
+	// m, err := sqlkit.NewMySQL(db).GetTables(ctx, "sqlkitdemo")
 	// assert.Nilf(b, err, "get tables error")
 	// b.Log(m)
 
@@ -680,8 +680,8 @@ func datas(rows *sql.Rows) []Data {
 }
 
 var (
-	dsn         = "root@tcp(localhost:3306)/entxdemo?charset=utf8&parseTime=True&loc=Local"
-	query       = "select id, app_name, name, version from data where app_name='auto-edd-dmap';"
+	dsn         = "root@tcp(localhost:3306)/sqlkitdemo?charset=utf8&parseTime=True&loc=Local"
+	query       = "select id, app_name, name, version from data where app_name='xxx-demo';"
 	queryBanned = "select id, app_name, name, version from data;"
 	now         = time.Date(2023, 2, 1, 15, 0, 0, 0, time.Local)
 )
