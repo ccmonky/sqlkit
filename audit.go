@@ -324,12 +324,16 @@ func (audit *Audit) detectAlarmType(er *mysql.ExplainRow) (alarmType AlarmType, 
 	if er.Table == nil || er.Type == nil {
 		return
 	}
+	var rows int
+	if er.Rows != nil {
+		rows = *er.Rows
+	}
 	if er.Type != nil {
 		if *er.Type == "ALL" || *er.Type == "index" {
 			reason = "explain:type:" + *er.Type
-			if *er.Rows > int(audit.BannedThreshold) {
+			if rows > int(audit.BannedThreshold) {
 				alarmType = Banned
-			} else if *er.Rows > int(*audit.AlarmThreshold) {
+			} else if rows > int(*audit.AlarmThreshold) {
 				alarmType = Alarm
 			}
 		}
@@ -338,9 +342,9 @@ func (audit *Audit) detectAlarmType(er *mysql.ExplainRow) (alarmType AlarmType, 
 		for ss := range audit.explainExtraAlarmSubstrs {
 			if strings.Contains(*er.Extra, ss) {
 				reason = "explain:extra:" + ss
-				if *er.Rows > int(audit.BannedThreshold) {
+				if rows > int(audit.BannedThreshold) {
 					alarmType = Banned
-				} else if *er.Rows > int(*audit.AlarmThreshold) {
+				} else if rows > int(*audit.AlarmThreshold) {
 					alarmType = Alarm
 				}
 			}
