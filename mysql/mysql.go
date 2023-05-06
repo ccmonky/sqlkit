@@ -204,6 +204,45 @@ type ProcessList struct {
 	// ...
 }
 
+// GetCharacterSets get session character set from mysql `performance_schema.session_variables`
+func (mysql MySQL) GetCharacterSetVars(ctx context.Context) (map[string]*Var, error) {
+	var vars = make(map[string]*Var)
+	rows, err := mysql.DB.QueryContext(ctx, CharacterSetVarsQuery)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var (
+			name  string
+			value string
+		)
+		if err := rows.Scan(&name, &value); err != nil {
+			return nil, err
+		}
+		vars[name] = &Var{
+			Name:  name,
+			Value: value,
+		}
+	}
+	return vars, rows.Err()
+}
+
+// Var variable
+type Var struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
 var (
 	TablesQuery = "SELECT table_name, table_rows FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ?;"
+
+	// CharacterSetVarsQuery see the values of the character set and collation system variables that apply to the current session
+	CharacterSetVarsQuery = `SELECT * FROM performance_schema.session_variables
+    WHERE VARIABLE_NAME IN (
+        'character_set_client', 
+        'character_set_connection',
+        'character_set_results', 
+        'collation_connection'
+    ) ORDER BY VARIABLE_NAME;`
 )
