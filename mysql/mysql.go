@@ -196,6 +196,12 @@ func (mysql MySQL) Locks(ctx context.Context, query string, args ...interface{})
 type Lock struct {
 }
 
+func (mysql MySQL) LockWaits(ctx context.Context, query string, args ...interface{}) ([]LockWait, error) {
+	return nil, nil
+}
+
+type LockWait struct{}
+
 func (mysql MySQL) ProcessList(ctx context.Context, query string, args ...interface{}) (*ProcessList, error) {
 	return nil, nil
 }
