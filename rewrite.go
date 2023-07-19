@@ -10,12 +10,13 @@ import (
 	"github.com/pingcap/tidb/parser/model"
 	_ "github.com/pingcap/tidb/types/parser_driver"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 type ShadowTable struct {
 	Prefix string `json:"prefix,omitempty"`
 	Suffix string `json:"suffix,omitempty"`
-	//Logger *zap.Logger
+	Logger *zap.Logger
 
 	parser *parser.Parser
 }
@@ -44,8 +45,8 @@ func (st *ShadowTable) Rewrite(sql string) (string, error) {
 	if err != nil {
 		return "", errors.WithMessagef(err, "parser sql faield: %s", sql)
 	}
-	if len(warns) > 0 {
-		//st.Logger.Debug("shadow table warnings", zap.Any("warns", warns), zap.String("sql", sql))
+	if len(warns) > 0 && st.Logger != nil {
+		st.Logger.Debug("shadow table warnings", zap.Any("warns", warns), zap.String("sql", sql))
 	}
 	stmtNode := stmtNodes[0]
 	switch stmtNode.(type) {
