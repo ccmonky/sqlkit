@@ -1,11 +1,23 @@
 package sqlkit_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/ccmonky/sqlkit"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestShadowTable(t *testing.T) {
+	st := sqlkit.ShadowTable{
+		Suffix: "_shadow",
+	}
+	err := st.Provision(context.Background())
+	assert.Nil(t, err)
+	s, err := st.Rewrite("select * from t where a = 1")
+	assert.Nil(t, err)
+	assert.Equal(t, "SELECT * FROM t_shadow WHERE a=1", s)
+}
 
 func TestRewrite(t *testing.T) {
 	r := sqlkit.Rewrite{
