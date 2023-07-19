@@ -14,9 +14,9 @@ func TestShadowTable(t *testing.T) {
 	}
 	err := st.Provision(context.Background())
 	assert.Nil(t, err)
-	s, err := st.Rewrite("select * from t where a = 1")
+	s, err := st.Rewrite("select * from t where a = ?")
 	assert.Nil(t, err)
-	assert.Equal(t, "SELECT * FROM t_shadow WHERE a=1", s)
+	assert.Equal(t, "SELECT * FROM t_shadow WHERE a=?", s)
 }
 
 func TestRewrite(t *testing.T) {
