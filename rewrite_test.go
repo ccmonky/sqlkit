@@ -14,10 +14,6 @@ func TestShadowTable(t *testing.T) {
 	}
 	err := st.Provision(context.Background())
 	assert.Nil(t, err)
-	// s, err := st.Rewrite("select t2.id from t as t2")
-	// assert.Nil(t, err)
-	// t.Log(s)
-	// t.Fatal(1)
 	var cases = []struct {
 		sql    string
 		shadow string
@@ -39,6 +35,20 @@ func TestShadowTable(t *testing.T) {
 		s, err := st.Rewrite(tc.sql)
 		assert.Nil(t, err)
 		assert.Equal(t, tc.shadow, s)
+	}
+	assert.Len(t, st.Sqls(), 3)
+}
+
+func BenchmarkRegisterTypeMultiple(b *testing.B) {
+	st := sqlkit.ShadowTable{
+		Suffix: "_s",
+	}
+	err := st.Provision(context.Background())
+	assert.Nil(b, err)
+	sql := "SELECT DISTINCT `templates`.`id`, `templates`.`create_time`, `templates`.`update_time`, `templates`.`version`, `templates`.`name`, `templates`.`description`, `templates`.`user_name`, `templates`.`last_user_name`, `templates`.`uid`, `templates`.`last_uid`, `templates`.`state`, `templates`.`hardware`, `templates`.`fixed_desc`, `templates`.`engine_file_suffix`, `templates`.`scale`, `templates`.`category_id`, `templates`.`level_id`, `templates`.`file_name_library_id`, `templates`.`source_library_id`, `templates`.`class_library_id`, `templates`.`maps_category_id`, `templates`.`source_link` FROM `templates` JOIN (SELECT `template_id` FROM `maps` WHERE `id` = ?) AS `t1` ON `templates`.`id` = `t1`.`template_id`"
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		_, _ = st.Rewrite(sql)
 	}
 }
 

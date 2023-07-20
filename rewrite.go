@@ -3,6 +3,7 @@ package sqlkit
 import (
 	"context"
 	"strings"
+	"sync"
 
 	"github.com/pingcap/tidb/parser"
 	"github.com/pingcap/tidb/parser/ast"
@@ -19,6 +20,7 @@ type ShadowTable struct {
 	Logger *zap.Logger
 
 	parser *parser.Parser
+	cache  sync.Map
 }
 
 func (st *ShadowTable) Provision(ctx context.Context) error {
@@ -30,21 +32,18 @@ func (st *ShadowTable) Provision(ctx context.Context) error {
 }
 
 func (st *ShadowTable) Enter(in ast.Node) (ast.Node, bool) {
-	//spew.Dump(in)
-	if tn, ok := in.(*ast.TableName); ok {
-		tn.Name = model.NewCIStr(st.Prefix + tn.Name.String() + st.Suffix)
-	}
-	if ts, ok := in.(*ast.TableSource); ok {
-		if ts.AsName.String() != "" {
-			ts.AsName = model.NewCIStr(st.Prefix + ts.AsName.String() + st.Suffix)
+	switch n := in.(type) {
+	case *ast.TableName:
+		n.Name = model.NewCIStr(st.Prefix + n.Name.String() + st.Suffix)
+	case *ast.TableSource:
+		if n.AsName.String() != "" {
+			n.AsName = model.NewCIStr(st.Prefix + n.AsName.String() + st.Suffix)
+		}
+	case *ast.ColumnName:
+		if n.Table.String() != "" {
+			n.Table = model.NewCIStr(st.Prefix + n.Table.String() + st.Suffix)
 		}
 	}
-	if cn, ok := in.(*ast.ColumnName); ok {
-		if cn.Table.String() != "" {
-			cn.Table = model.NewCIStr(st.Prefix + cn.Table.String() + st.Suffix)
-		}
-	}
-	// TODO: how to handle `as`?
 	return in, false
 }
 
@@ -53,6 +52,9 @@ func (st *ShadowTable) Leave(in ast.Node) (ast.Node, bool) {
 }
 
 func (st *ShadowTable) Rewrite(sql string) (string, error) {
+	if result, ok := st.cache.Load(sql); ok {
+		return result.(string), nil
+	}
 	stmtNodes, warns, err := st.parser.Parse(sql, "", "")
 	if err != nil {
 		return "", errors.WithMessagef(err, "parser sql faield: %s", sql)
@@ -76,7 +78,17 @@ func (st *ShadowTable) Rewrite(sql string) (string, error) {
 	if err != nil {
 		return "", errors.WithMessagef(err, "restore failed for sql: %s; ctx: %v", sql, ctx)
 	}
+	st.cache.Store(sql, sb.String())
 	return sb.String(), nil
+}
+
+func (st *ShadowTable) Sqls() map[string]string {
+	snapshot := make(map[string]string)
+	st.cache.Range(func(k, v any) bool {
+		snapshot[k.(string)] = v.(string)
+		return true
+	})
+	return snapshot
 }
 
 // Rewrite used to rewrite sql
