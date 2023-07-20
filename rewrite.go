@@ -14,6 +14,83 @@ import (
 	"go.uber.org/zap"
 )
 
+// Rewrite used to rewrite sql and args
+type Rewrite struct {
+	GlobalRewriter  *Rewriter            `json:"global_rewriter,omitempty"`
+	CustomRewriters map[string]*Rewriter `json:"custom_rewriters,omitempty"`
+}
+
+func (r Rewrite) Rewrite(sql string, args []any) (string, []any, error) {
+	var err error
+	if r.GlobalRewriter != nil {
+		sql, args, err = r.GlobalRewriter.Rewrite(sql, args)
+		if err != nil {
+			return "", nil, errors.WithMessagef(err, "global rewrite failed: %s: %s", r.GlobalRewriter.Name(), sql)
+		}
+	}
+	if r.CustomRewriters != nil {
+		if cr, ok := r.CustomRewriters[sql]; ok {
+			sql, args, err = cr.Rewrite(sql, args)
+			if err != nil {
+				return "", nil, errors.WithMessagef(err, "custom rewrite failed: %s: %s", cr.Name(), sql)
+			}
+		}
+	}
+	return sql, args, nil
+}
+
+type Rewriter struct {
+	SqlRewriters  []SqlRewriter  `json:"sql_rewriters,omitempty"`
+	ArgsRewriters []ArgsRewriter `json:"args_rewriters,omitempty"`
+}
+
+func (rr Rewriter) Name() string {
+	var srName, arName string
+	for i, sr := range rr.SqlRewriters {
+		if i == len(rr.SqlRewriters)-1 {
+			srName += sr.Name()
+		} else {
+			srName += sr.Name() + "->"
+		}
+	}
+
+	for i, ar := range rr.ArgsRewriters {
+		if i == len(rr.ArgsRewriters)-1 {
+			arName += ar.Name()
+		} else {
+			arName += ar.Name() + "->"
+		}
+	}
+	return "[sql]%s[args]%s"
+}
+
+func (rr Rewriter) Rewrite(sql string, args []any) (string, []any, error) {
+	var err error
+	for _, sr := range rr.SqlRewriters {
+		sql, err = sr.RewriteSql(sql)
+		if err != nil {
+			return sql, args, errors.WithMessagef(err, "rewrite sql failed: %s: %s", sr.Name(), sql)
+		}
+	}
+	for _, ar := range rr.ArgsRewriters {
+		args, err = ar.RewriteArgs(args)
+		if err != nil {
+			return sql, args, errors.WithMessagef(err, "rewrite args failed: %s: %v", ar.Name(), args)
+		}
+	}
+	return sql, args, nil
+}
+
+type SqlRewriter interface {
+	Name() string
+	RewriteSql(sql string) (string, error)
+}
+
+type ArgsRewriter interface {
+	Name() string
+	RewriteArgs(args []any) ([]any, error)
+}
+
 type ShadowTable struct {
 	Prefix string `json:"prefix,omitempty"`
 	Suffix string `json:"suffix,omitempty"`
@@ -21,6 +98,10 @@ type ShadowTable struct {
 
 	parser *parser.Parser
 	cache  sync.Map
+}
+
+func (st *ShadowTable) Name() string {
+	return "shadow_table"
 }
 
 func (st *ShadowTable) Provision(ctx context.Context) error {
@@ -51,7 +132,7 @@ func (st *ShadowTable) Leave(in ast.Node) (ast.Node, bool) {
 	return in, true
 }
 
-func (st *ShadowTable) Rewrite(sql string) (string, error) {
+func (st *ShadowTable) RewriteSql(sql string) (string, error) {
 	if result, ok := st.cache.Load(sql); ok {
 		return result.(string), nil
 	}
@@ -91,32 +172,6 @@ func (st *ShadowTable) Sqls() map[string]string {
 	return snapshot
 }
 
-// Rewrite used to rewrite sql
-// TODO ...
-type Rewrite struct {
-	Query  string `json:"query"`
-	ArgOps map[uint]ArgOp
-}
-
-func (r Rewrite) Args(args ...interface{}) ([]interface{}, error) {
-	if r.ArgOps == nil {
-		return args, nil
-	}
-	var result []interface{}
-	for i := range args {
-		if op, ok := r.ArgOps[uint(i)]; ok {
-			if op == DelOp {
-				continue
-			}
-		}
-		result = append(result, args[i])
-	}
-	return result, nil
-}
-
-type ArgOp int
-
-const (
-	NoOp ArgOp = iota
-	DelOp
+var (
+	_ SqlRewriter = (*ShadowTable)(nil)
 )
