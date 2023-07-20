@@ -14,10 +14,62 @@ import (
 	"go.uber.org/zap"
 )
 
-// Rewrite used to rewrite sql and args
+type RewriterBase interface {
+	Name() string
+	Provision(context.Context) error
+	SetLogger(*zap.Logger)
+}
+
+type RewriterInterface interface {
+	RewriterBase
+	Rewrite(sql string, args []any) (string, []any, error)
+}
+
+type SqlRewriter interface {
+	RewriterBase
+	RewriteSql(sql string) (string, error)
+}
+
+type ArgsRewriter interface {
+	RewriterBase
+	RewriteArgs(args []any) ([]any, error)
+}
+
+// Rewrite an aggregate rewriter, usually can be used in most cases
 type Rewrite struct {
 	GlobalRewriter  *Rewriter            `json:"global_rewriter,omitempty"`
 	CustomRewriters map[string]*Rewriter `json:"custom_rewriters,omitempty"`
+}
+
+func (r *Rewrite) Name() string {
+	return "rewrite"
+}
+
+func (r *Rewrite) Provision(ctx context.Context) error {
+	if r.GlobalRewriter != nil {
+		if err := r.GlobalRewriter.Provision(ctx); err != nil {
+			return errors.WithMessagef(err, "global rewriter provision failed")
+		}
+	}
+	for sql, rr := range r.CustomRewriters {
+		if rr != nil {
+			if err := rr.Provision(ctx); err != nil {
+				return errors.WithMessagef(err, "custom rewriter provision failed: %s", sql)
+			}
+		}
+	}
+	return nil
+}
+
+func (r *Rewrite) SetLogger(logger *zap.Logger) {
+	if r.GlobalRewriter != nil {
+		r.GlobalRewriter.SetLogger(logger)
+	}
+	for _, rr := range r.CustomRewriters {
+		if rr != nil {
+			rr.SetLogger(logger)
+		}
+	}
 }
 
 func (r Rewrite) Rewrite(sql string, args []any) (string, []any, error) {
@@ -64,6 +116,29 @@ func (rr Rewriter) Name() string {
 	return "[sql]%s[args]%s"
 }
 
+func (rr Rewriter) Provision(ctx context.Context) error {
+	for _, sr := range rr.SqlRewriters {
+		if err := sr.Provision(ctx); err != nil {
+			return errors.WithMessagef(err, "sql rewriter provision failed: %s", sr.Name())
+		}
+	}
+	for _, ar := range rr.ArgsRewriters {
+		if err := ar.Provision(ctx); err != nil {
+			return errors.WithMessagef(err, "args rewriter provision failed: %s", ar.Name())
+		}
+	}
+	return nil
+}
+
+func (rr *Rewriter) SetLogger(logger *zap.Logger) {
+	for _, sr := range rr.SqlRewriters {
+		sr.SetLogger(logger)
+	}
+	for _, ar := range rr.ArgsRewriters {
+		ar.SetLogger(logger)
+	}
+}
+
 func (rr Rewriter) Rewrite(sql string, args []any) (string, []any, error) {
 	var err error
 	for _, sr := range rr.SqlRewriters {
@@ -81,23 +156,13 @@ func (rr Rewriter) Rewrite(sql string, args []any) (string, []any, error) {
 	return sql, args, nil
 }
 
-type SqlRewriter interface {
-	Name() string
-	RewriteSql(sql string) (string, error)
-}
-
-type ArgsRewriter interface {
-	Name() string
-	RewriteArgs(args []any) ([]any, error)
-}
-
 type ShadowTable struct {
 	Prefix string `json:"prefix,omitempty"`
 	Suffix string `json:"suffix,omitempty"`
-	Logger *zap.Logger
 
 	parser *parser.Parser
 	cache  sync.Map
+	logger *zap.Logger
 }
 
 func (st *ShadowTable) Name() string {
@@ -110,6 +175,10 @@ func (st *ShadowTable) Provision(ctx context.Context) error {
 	}
 	st.parser = parser.New()
 	return nil
+}
+
+func (st *ShadowTable) SetLogger(logger *zap.Logger) {
+	st.logger = logger
 }
 
 func (st *ShadowTable) Enter(in ast.Node) (ast.Node, bool) {
@@ -140,8 +209,8 @@ func (st *ShadowTable) RewriteSql(sql string) (string, error) {
 	if err != nil {
 		return "", errors.WithMessagef(err, "parser sql faield: %s", sql)
 	}
-	if len(warns) > 0 && st.Logger != nil {
-		st.Logger.Debug("shadow table warnings", zap.Any("warns", warns), zap.String("sql", sql))
+	if len(warns) > 0 && st.logger != nil {
+		st.logger.Debug("shadow table warnings", zap.Any("warns", warns), zap.String("sql", sql))
 	}
 	stmtNode := stmtNodes[0]
 	switch stmtNode.(type) {
@@ -173,5 +242,7 @@ func (st *ShadowTable) Sqls() map[string]string {
 }
 
 var (
-	_ SqlRewriter = (*ShadowTable)(nil)
+	_ RewriterInterface = (*Rewrite)(nil)
+	_ RewriterInterface = (*Rewriter)(nil)
+	_ SqlRewriter       = (*ShadowTable)(nil)
 )
