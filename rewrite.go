@@ -33,6 +33,11 @@ func (st *ShadowTable) Enter(in ast.Node) (ast.Node, bool) {
 	if tn, ok := in.(*ast.TableName); ok {
 		tn.Name = model.NewCIStr(st.Prefix + tn.Name.String() + st.Suffix)
 	}
+	if cn, ok := in.(*ast.ColumnName); ok {
+		if cn.Table.String() != "" {
+			cn.Table = model.NewCIStr(st.Prefix + cn.Table.String() + st.Suffix)
+		}
+	}
 	return in, false
 }
 

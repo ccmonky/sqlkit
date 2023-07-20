@@ -14,9 +14,24 @@ func TestShadowTable(t *testing.T) {
 	}
 	err := st.Provision(context.Background())
 	assert.Nil(t, err)
-	s, err := st.Rewrite("select * from t where a = ?")
-	assert.Nil(t, err)
-	assert.Equal(t, "SELECT * FROM t_shadow WHERE a=?", s)
+	var cases = []struct {
+		sql    string
+		shadow string
+	}{
+		{
+			sql:    "select * from t where a = ?",
+			shadow: "SELECT * FROM t_shadow WHERE a=?",
+		},
+		{
+			sql:    "SELECT DISTINCT `classes`.`id`, `classes`.`create_time`, `classes`.`update_time`, `classes`.`name`, `classes`.`version`, `classes`.`level`, `classes`.`num`, `classes`.`class_type`, `classes`.`support_tid`, `classes`.`reverse_search_status`, `classes`.`lng`, `classes`.`lat`, `classes`.`scale`, `classes`.`pitch_angle`, `classes`.`uid`, `classes`.`bind_card`, `classes`.`unbinding`, `classes`.`has_sub`, `classes`.`class_library_id`, `classes`.`style_category_id`, `classes`.`parent_id`, `classes`.`bind_card_unbind` FROM `classes` WHERE `classes`.`id` = ?",
+			shadow: "SELECT DISTINCT classes_shadow.id,classes_shadow.create_time,classes_shadow.update_time,classes_shadow.name,classes_shadow.version,classes_shadow.level,classes_shadow.num,classes_shadow.class_type,classes_shadow.support_tid,classes_shadow.reverse_search_status,classes_shadow.lng,classes_shadow.lat,classes_shadow.scale,classes_shadow.pitch_angle,classes_shadow.uid,classes_shadow.bind_card,classes_shadow.unbinding,classes_shadow.has_sub,classes_shadow.class_library_id,classes_shadow.style_category_id,classes_shadow.parent_id,classes_shadow.bind_card_unbind FROM classes_shadow WHERE classes_shadow.id=?",
+		},
+	}
+	for _, tc := range cases {
+		s, err := st.Rewrite(tc.sql)
+		assert.Nil(t, err)
+		assert.Equal(t, tc.shadow, s)
+	}
 }
 
 func TestRewrite(t *testing.T) {
