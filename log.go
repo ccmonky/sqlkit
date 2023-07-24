@@ -26,9 +26,25 @@ func (h *LogHooks) Before(ctx context.Context, query string, args ...interface{}
 
 // After hook will get the timestamp registered on the Before hook and print the elapsed time
 func (h *LogHooks) After(ctx context.Context, query string, args ...interface{}) (context.Context, error) {
+	return h.log(ctx, query, nil, args...)
+}
+
+func (h *LogHooks) OnError(ctx context.Context, err error, query string, args ...interface{}) error {
+	_, _ = h.log(ctx, query, err, args...)
+	return err
+}
+
+// After hook will get the timestamp registered on the Before hook and print the elapsed time
+func (h *LogHooks) log(ctx context.Context, query string, err error, args ...interface{}) (context.Context, error) {
 	start := ctx.Value(ctxKeyStartTime).(time.Time)
 	rt := time.Since(start).Nanoseconds() / 1e6 // unit: Ms
-	var fields = make([]zap.Field, 0, len(args)+3)
+	var fields []zap.Field
+	if err != nil {
+		fields = make([]zap.Field, 0, len(args)+4)
+	} else {
+		fields = make([]zap.Field, 0, len(args)+3)
+		fields = append(fields, zap.Error(err))
+	}
 	fields = append(fields, zap.String("query", query))
 	fields = append(fields, zap.Int64("rt", rt))
 	fields = append(fields, zap.String("gsid", logkit.GetReqID(ctx)))

@@ -53,6 +53,8 @@ func TestLogHooks(t *testing.T) {
 	rows, err = db.QueryContext(ctx, "SELECT id, text FROM t1")
 	assert.Nil(t, err)
 	rows.Close()
+	_, err = db.QueryContext(ctx, "SELECT id2, text FROM t1")
+	assert.NotNil(t, err)
 
 	// {"level":"info","ts":1687946069.724422,"msg":"sql log","query":"CREATE TABLE t1 (id INTEGER, text VARCHAR(16))","rt":0,"gsid":"-"}
 	// {"level":"info","ts":1687946069.724513,"msg":"sql log","query":"INSERT into t1 (text) VALUES(?), (?)","rt":0,"gsid":"foo","arg0":"foo","arg1":"bar"}
@@ -60,7 +62,7 @@ func TestLogHooks(t *testing.T) {
 	// {"level":"info","ts":1687946069.724555,"msg":"sql log","query":"SELECT * FROM t1 where text=?","rt":0,"gsid":"baz","arg0":"12345..."}
 	// {"level":"info","ts":1687946069.724567,"msg":"sql log","query":"SELECT id, text FROM t1","rt":0,"gsid":"baz"}
 	length := len(strings.Split(b.String(), "\n"))
-	if length < 5 {
-		t.Fatalf("should >=5, got %d", length)
+	if length < 6 {
+		t.Fatalf("should >=6, got %d", length)
 	}
 }
