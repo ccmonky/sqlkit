@@ -41,9 +41,9 @@ func (h *LogHooks) log(ctx context.Context, query string, err error, args ...int
 	var fields []zap.Field
 	if err != nil {
 		fields = make([]zap.Field, 0, len(args)+4)
+		fields = append(fields, zap.Error(err))
 	} else {
 		fields = make([]zap.Field, 0, len(args)+3)
-		fields = append(fields, zap.Error(err))
 	}
 	fields = append(fields, zap.String("query", query))
 	fields = append(fields, zap.Int64("rt", rt))
