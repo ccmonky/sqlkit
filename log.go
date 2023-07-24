@@ -2,6 +2,8 @@ package sqlkit
 
 import (
 	"context"
+	"database/sql/driver"
+	"errors"
 	"strconv"
 	"time"
 
@@ -30,6 +32,9 @@ func (h *LogHooks) After(ctx context.Context, query string, args ...interface{})
 }
 
 func (h *LogHooks) OnError(ctx context.Context, err error, query string, args ...interface{}) error {
+	if errors.Is(err, driver.ErrSkip) {
+		return err
+	}
 	_, _ = h.log(ctx, query, err, args...)
 	return err
 }
