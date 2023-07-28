@@ -61,7 +61,11 @@ func (h *LogHooks) log(ctx context.Context, query string, err error, args ...int
 			fields = append(fields, logkit.ZapAnyN(argi, arg, h.FieldSize))
 		}
 	}
-	h.Logger.Log(h.Level, "sql log", fields...)
+	if err != nil {
+		h.Logger.Log(zapcore.ErrorLevel, "sql log", fields...)
+	} else {
+		h.Logger.Log(h.Level, "sql log", fields...)
+	}
 	return ctx, nil
 }
 
