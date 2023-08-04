@@ -8,6 +8,7 @@ import (
 
 var (
 	IsMySQLDuplicateError = IsMySQLError(uint16(1062))
+	IsMySQLNowaitError    = IsMySQLError(uint16(3572))
 )
 
 func IsMySQLError(code uint16) func(error) bool {
