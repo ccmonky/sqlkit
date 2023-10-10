@@ -31,6 +31,11 @@ func TestLogHooks(t *testing.T) {
 		Logger:    logger,
 		Level:     zapcore.InfoLevel,
 		FieldSize: 5,
+		FieldNameMap: map[string]string{
+			"query":    "sql",
+			"rt":       "duration",
+			"trace_id": "t_id",
+		},
 	}))
 	// Connect to the registered wrapped driver
 	db, err := sql.Open("sqlite3WithLogHooks", ":memory:")

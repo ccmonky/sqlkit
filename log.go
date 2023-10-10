@@ -15,9 +15,10 @@ import (
 
 // LogHooks log sqls with rt and traceid
 type LogHooks struct {
-	Logger    *zap.Logger
-	Level     zapcore.Level `json:"level,omitempty"`
-	FieldSize int           `json:"field_size,omitempty"`
+	Logger       *zap.Logger
+	Level        zapcore.Level     `json:"level,omitempty"`
+	FieldSize    int               `json:"field_size,omitempty"`
+	FieldNameMap map[string]string `json:"field_name_map,omitempty"`
 }
 
 // Before hook will print the query with it's args and return the context with the timestamp
@@ -50,9 +51,9 @@ func (h *LogHooks) log(ctx context.Context, query string, err error, args ...int
 	} else {
 		fields = make([]zap.Field, 0, len(args)+3)
 	}
-	fields = append(fields, zap.String("query", query))
-	fields = append(fields, zap.Int64("rt", rt))
-	fields = append(fields, zap.String("gsid", logkit.GetReqID(ctx)))
+	fields = append(fields, zap.String(h.fieldName("query"), query))
+	fields = append(fields, zap.Int64(h.fieldName("rt"), rt))
+	fields = append(fields, zap.String(h.fieldName("trace_id"), logkit.GetReqID(ctx)))
 	for i, arg := range args {
 		argi := "arg" + strconv.Itoa(i)
 		if h.FieldSize <= 0 {
@@ -67,6 +68,15 @@ func (h *LogHooks) log(ctx context.Context, query string, err error, args ...int
 		h.Logger.Log(h.Level, "sql log", fields...)
 	}
 	return ctx, nil
+}
+
+func (h *LogHooks) fieldName(name string) string {
+	if h.FieldNameMap != nil {
+		if v, ok := h.FieldNameMap[name]; ok && v != "" {
+			return v
+		}
+	}
+	return name
 }
 
 var ctxKeyStartTime = struct{}{}
