@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/ccmonky/errors v0.0.0-20230122034905-509c1e454d9b
-	github.com/ccmonky/pkg v0.0.0-20230707235144-a5f41dc127e5
+	github.com/ccmonky/pkg v0.0.0-20231010070501-6ad1d2ef923c
 	github.com/ccmonky/render v0.0.0-20230216012423-1f46192c6b78
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/golang/protobuf v1.5.2

@@ -111,6 +111,8 @@ github.com/ccmonky/log v0.0.0-20230122031221-519c86d59a22 h1:GforFg1jPpVgOhdkPns
 github.com/ccmonky/log v0.0.0-20230122031221-519c86d59a22/go.mod h1:8NBQ0GcqRCrsd+OXDSlfR5qaXeV6WUHHljcu+joOy5k=
 github.com/ccmonky/pkg v0.0.0-20230707235144-a5f41dc127e5 h1:H0zuop5EpZLKfUJwfYD/jyg5bRSaZcNBOFPFnX2WiME=
 github.com/ccmonky/pkg v0.0.0-20230707235144-a5f41dc127e5/go.mod h1:0xBsLvvIX3eqR9I6vxFqnv0WjRTrpGUO+9Yql6Od48I=
+github.com/ccmonky/pkg v0.0.0-20231010070501-6ad1d2ef923c h1:saGoZER10kQ1SLFcob/XZ0TKiP4luiJn56BSHcnMHfs=
+github.com/ccmonky/pkg v0.0.0-20231010070501-6ad1d2ef923c/go.mod h1:0xBsLvvIX3eqR9I6vxFqnv0WjRTrpGUO+9Yql6Od48I=
 github.com/ccmonky/render v0.0.0-20230216012423-1f46192c6b78 h1:Vb70tIimlSO04FM+CBOUtgqdT+z3ceocHmTmFm722Xk=
 github.com/ccmonky/render v0.0.0-20230216012423-1f46192c6b78/go.mod h1:T6mXueZi8mgOO0gEjeJDcP+xq8OeiVfBkQB04VRUlKY=
 github.com/cenkalti/backoff/v4 v4.0.2/go.mod h1:eEew/i+1Q6OrCDZh3WiXYv3+nJwBASZ8Bog/87DQnVg=
@@ -750,6 +752,7 @@ github.com/spf13/viper v1.4.0/go.mod h1:PTJ7Z/lr49W6bUbkmS1V3by4uWynFiR9p7+dSq/y
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.2.0/go.mod h1:qt09Ya8vawLte6SNmTgCsAVtYtaKzEcn8ATUoHMkEqE=
+github.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpEOglKo=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
